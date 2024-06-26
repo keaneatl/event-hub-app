@@ -1,0 +1,131 @@
+﻿@using EventHubApp.Components.Account
+@using Microsoft.AspNetCore.Identity
+@using EventHubApp.Data
+
+@inject IdentityUserAccessor UserAccessor
+@inject UserManager<ApplicationUser> UserManager
+@inject IUsersService UsersService
+@inject ITicketsService TicketsService
+@inject IUserTicketsService UserTicketsService
+@inject IEventsService EventsService
+
+@attribute [Authorize]
+@attribute [StreamRendering(true)]
+@page "/my-tickets"
+
+<PageTitle>My Tickets</PageTitle>
+
+<AuthorizeView>
+    @if (userTickets == null)
+    {
+        <span>Loading...</span>
+    }
+    else if (userTickets.Count == 0)
+    {
+        <span>You have not purchased any tickets.</span>
+    }
+    else
+    {
+        <div class="container my-5">
+        <h1 class="text-center mb-4 text-white">My Tickets</h1>
+        <h2 class="text-center mb-4 text-white">Active</h2>
+        <div class="table-container">
+            <div class="table-responsive">
+                <table class="table table-primary table-striped">
+                    <thead class="table-primary">
+                        <tr>
+                            <th scope="col">Ticket ID</th>
+                            <th scope="col">Event Name</th>
+                            <th scope="col">Event Location</th>
+                            <th scope="col">Event Description</th>
+                            <th scope="col">Ticket Price</th>
+                            <th scope="col">Quantity</th>
+                            <th scope="col">Payment Method</th>
+                            <th scope="col">Active</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var userTicket in userTickets)
+                        {
+                            @foreach (var ticket in tickets)
+                            {
+                                if (userTicket.TicketId == ticket.TicketId)
+                                {
+                                    foreach (var evt in userEvents)
+                                    {
+                                        if (evt.EventId == ticket.EventId)
+                                        {
+                                            <tr>
+                                                <th scope="row">@userTicket.UserTicketId</th>
+                                                <td>@evt.Event1</td>
+                                                <td>@evt.Location</td>
+                                                <td>@evt.Description</td>
+                                                <td>@evt.Price</td>
+                                                <td>@userTicket.Quantity</td>
+                                                <td>@userTicket.PaymentMethod</td>
+                                                @if (evt.EndDate < DateTime.Now)
+                                                {
+                                                    <td>Inactive</td>
+                                                }
+                                                else
+                                                {
+                                                    <td>Active</td>
+                                                }
+                                            </tr>
+                                        }
+                                    }   
+                                }
+                            }
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        @* <h2 class="text-center mb-4 text-white">Inactive</h2> *@
+
+    </div>
+    }
+
+</AuthorizeView>
+
+@code {
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = default!;
+
+    private ApplicationUser user = default!;
+    private string? username;
+
+    List<UserTicket> userTickets = null;
+    List<Ticket> tickets = null;
+    List<Event> events = null;
+    List<Event> userEvents = new List<Event>();
+
+    protected override async Task OnInitializedAsync()
+    {
+        user = await UserAccessor.GetRequiredUserAsync(HttpContext);
+        username = await UserManager.GetUserIdAsync(user);
+
+        var eventHubUser = await UsersService.FindUserByUsername(username);
+
+        userTickets = await UserTicketsService.GetUserTicketsOfUser(eventHubUser.UserId);
+
+        tickets = await TicketsService.GetAllTickets();
+        events = await EventsService.GetAllEvents();
+
+        // Get events from userTickets
+        foreach (var userTicket in userTickets)
+        {
+            foreach (var ticket in tickets)
+            {
+                if (userTicket.TicketId == ticket.TicketId)
+                {
+                    Event userEvent = await EventsService.GetEvent($"{{{ticket.EventId}}}");
+                    if (!userEvents.Contains(userEvent))
+                        userEvents.Add(userEvent);
+                }
+            }
+        }
+
+    }
+
+}

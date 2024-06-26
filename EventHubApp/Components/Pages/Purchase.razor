@@ -107,6 +107,7 @@ else
 
         user = await UserAccessor.GetRequiredUserAsync(HttpContext);
         username = await UserManager.GetUserIdAsync(user);
+
         var eventHubUser = await UsersService.FindUserByUsername(username);
         userId = eventHubUser.UserId;
     }

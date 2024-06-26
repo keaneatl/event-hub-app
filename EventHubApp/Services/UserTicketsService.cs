@@ -26,5 +26,14 @@ namespace EventHubApp.Services
 
             return ticket;
         }
+
+        public async Task<List<UserTicket>> GetUserTicketsOfUser(int userId)
+        {
+            var tickets = await _context.UserTickets.ToListAsync();
+
+            var ticketsOfUser = tickets.FindAll(ticket => ticket.UserId == userId);
+
+            return ticketsOfUser;
+        }
     }
 }
