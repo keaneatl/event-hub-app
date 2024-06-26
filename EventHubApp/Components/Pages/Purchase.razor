@@ -1,0 +1,98 @@
+﻿@page "/purchase/{EventID}"
+@attribute [StreamRendering(true)]
+@inject IEventsService EventsService
+@inject ITicketsService TicketsService
+@inject IEventTypesService EventTypesService
+
+@attribute [Authorize]
+
+<PageTitle>Purchase Tickets</PageTitle>
+<br />
+<br />
+<h1 class="text-center">Purchase Tickets</h1>
+
+@if (e == null)
+{
+    <span>Event no longer available.</span>
+    <span>Loading...</span>
+}
+else
+{
+    <AuthorizeView>
+
+        <div class="container">
+            <h2 class="text-center my-5">@e.Event1</h2>
+            <div class="row justify-content-center mb-5">
+                <div class="col-sm-12 col-md-8 col-lg-6">
+                    <div class="card">
+                        <img src="assets/img2.png" class="card-img-top" alt="Image">
+                        <div class="card-body">
+                            <p><strong>Event Type:</strong> @eventType.EventType1</p>
+                            <p class="card-text"><strong>Event Location: </strong>@e.Location</p>
+                            <p class="card-text"><strong>Event Description:</strong> @e.Description</p>
+                            @* <p class="card-text"><strong>Event Price:</strong>₱@e.Price</p> *@
+                            <p class="card-text"><strong>Event Start Date:</strong> @e.StartDate</p>
+                            <p class="card-text"><strong>Event End Date:</strong> @e.EndDate</p>
+
+                            <br />
+                            <div class="form-group">
+                                <label class="label1" for="ticketType"><strong>Ticket Type:</strong></label>
+                                <select class="form-control" id="ticketType">
+                                    @foreach (var ticket in eventTickets)
+                                    {
+                                        @if (ticket.Stock > 0)
+                                        {
+                                            <option>@ticket.Ticket1 - ₱@ticket.Price</option>
+                                        }
+                                        else
+                                        {
+                                            <option disabled>@ticket.Ticket1 - ₱@ticket.Price</option>
+                                        }
+                                    }
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="label1" for="quantity"><strong>Ticket Quantity:</strong></label>
+                                <input type="number" id="quantity" class="form-control" />
+                            </div>
+
+                            <div class="form-group">
+                                <label class="label1" for="paymentMethod"><strong>Payment Method:</strong></label>
+                                <select class="form-control" id="paymentMethod">
+                                    <option>Gcash</option>
+                                    <option>Maya</option>
+                                    <option>Credit Card</option>
+                                </select>
+                            </div>
+
+                            <div class="text-center m-3">
+                                <button type="submit" class="btn btn-primary">Buy Tickets</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </AuthorizeView>
+}
+
+@code {
+    [Parameter]
+    public string EventID { get; set; }
+
+    List<Ticket> eventTickets = null;
+    List<EventType> eventTypes = null;
+    EventType eventType = null;
+    Event e = null;
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        e = await EventsService.GetEvent(EventID);
+        eventTickets = await TicketsService.GetEventTickets(EventID);
+        eventTypes = await EventTypesService.GetAllEventTypes();
+
+        eventType = eventTypes.Find(eventType => eventType.EventTypeId == e.EventTypeId);
+    }
+}

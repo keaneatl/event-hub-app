@@ -1,0 +1,50 @@
+﻿@page "/browse"
+@attribute [StreamRendering(true)]
+@inject NavigationManager Navigation
+@inject IEventsService EventsService
+<PageTitle>Browse Events</PageTitle>
+<br />
+<br />
+<h1 class="text-center ">Browse Events</h1>
+<br />
+
+<div class="input-group">
+    <input class="form-control" type="search" placeholder="Type Here" aria-label="Search">
+    <div class="input-group-append">
+        <button class="btn btn-primary">Search</button>
+    </div>
+</div>
+
+@if (events == null)
+{
+    <span>Loading...</span>
+}
+else if (events.Count == 0)
+{
+    <span>There are no events found</span>
+}
+else
+{
+    <div class="cards">
+        @foreach (var e in events)
+        {
+                <div class="card" style="width: 18rem;">
+                    <img src="assets/img1.webp" class="d-block w-100" alt="Image">
+                    <div class="card-body">
+                        <h5 class="card-title">@e.Event1 (@e.StartDate - @e.EndDate)</h5>
+                        <p class="card-text">@e.Description</p>
+                    <a href="/purchase/{@e.EventId}" class="btn btn-primary">Get Tickets</a>
+                    </div>
+                </div>
+        }
+    </div>
+}
+
+@code {
+    List<Event> events = null;
+
+    protected override async Task OnInitializedAsync()
+    {
+        events = await EventsService.GetAllEvents();
+    }
+}

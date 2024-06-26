@@ -2,6 +2,8 @@ using EventHubApp.Client.Pages;
 using EventHubApp.Components;
 using EventHubApp.Components.Account;
 using EventHubApp.Data;
+using EventHubApp.Entities;
+using EventHubApp.Services;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -28,6 +30,9 @@ builder.Services.AddAuthentication(options =>
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(connectionString));
+builder.Services.AddDbContext<EventHubussyContext>(options =>
+    options.UseSqlServer(builder.Configuration.GetConnectionString(connectionString)));
+
 builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 
 builder.Services.AddIdentityCore<ApplicationUser>(options => options.SignIn.RequireConfirmedAccount = true)
@@ -36,6 +41,10 @@ builder.Services.AddIdentityCore<ApplicationUser>(options => options.SignIn.Requ
     .AddDefaultTokenProviders();
 
 builder.Services.AddSingleton<IEmailSender<ApplicationUser>, IdentityNoOpEmailSender>();
+
+builder.Services.AddScoped<IEventsService, EventsService>();
+builder.Services.AddScoped<ITicketsService, TicketsService>();
+builder.Services.AddScoped<IEventTypesService, EventTypesService>();
 
 var app = builder.Build();
 
