@@ -1,8 +1,18 @@
 ﻿@page "/purchase/{EventID}"
+
+@using EventHubApp.Components.Account
+@using Microsoft.AspNetCore.Identity
+@using EventHubApp.Data
+
 @attribute [StreamRendering(true)]
 @inject IEventsService EventsService
 @inject ITicketsService TicketsService
 @inject IEventTypesService EventTypesService
+@inject IUserTicketsService UserTicketsService
+@inject UserManager<ApplicationUser> UserManager
+@inject IUsersService UsersService
+@inject IdentityUserAccessor UserAccessor
+@inject NavigationManager Navigation
 
 @attribute [Authorize]
 
@@ -13,13 +23,11 @@
 
 @if (e == null)
 {
-    <span>Event no longer available.</span>
     <span>Loading...</span>
 }
 else
 {
-    <AuthorizeView>
-
+    <AuthorizeView Context="ApplicationDbContext">
         <div class="container">
             <h2 class="text-center my-5">@e.Event1</h2>
             <div class="row justify-content-center mb-5">
@@ -35,40 +43,35 @@ else
                             <p class="card-text"><strong>Event End Date:</strong> @e.EndDate</p>
 
                             <br />
-                            <div class="form-group">
-                                <label class="label1" for="ticketType"><strong>Ticket Type:</strong></label>
-                                <select class="form-control" id="ticketType">
+                            <EditForm Model="UserTicket" OnSubmit="HandleSubmit" FormName="EditUserTickets">
+                                <label for="ticket-type" class="label1"><strong>Ticket Type</strong></label>
+                                <InputSelect @bind-Value="UserTicket.TicketId" id="ticket-type">
                                     @foreach (var ticket in eventTickets)
                                     {
                                         @if (ticket.Stock > 0)
                                         {
-                                            <option>@ticket.Ticket1 - ₱@ticket.Price</option>
+                                            <option value="@ticket.TicketId">@ticket.Ticket1 - ₱@ticket.Price</option>
                                         }
                                         else
                                         {
                                             <option disabled>@ticket.Ticket1 - ₱@ticket.Price</option>
                                         }
                                     }
-                                </select>
-                            </div>
-
-                            <div class="form-group">
+                                </InputSelect>
+                                <br />
+                                <br />
                                 <label class="label1" for="quantity"><strong>Ticket Quantity:</strong></label>
-                                <input type="number" id="quantity" class="form-control" />
-                            </div>
+                                <InputNumber @bind-Value="UserTicket.Quantity" type="number" id="quantity" class="form-control" />
 
-                            <div class="form-group">
                                 <label class="label1" for="paymentMethod"><strong>Payment Method:</strong></label>
-                                <select class="form-control" id="paymentMethod">
-                                    <option>Gcash</option>
-                                    <option>Maya</option>
-                                    <option>Credit Card</option>
-                                </select>
-                            </div>
+                                <InputSelect @bind-Value="UserTicket.PaymentMethod" class="form-control" id="paymentMethod">
+                                    <option value="GCash">GCash</option>
+                                    <option value="Maya">Maya</option>
+                                    <option value="Credit Card">Credit Card</option>
+                                </InputSelect>
 
-                            <div class="text-center m-3">
                                 <button type="submit" class="btn btn-primary">Buy Tickets</button>
-                            </div>
+                            </EditForm>
                         </div>
                     </div>
                 </div>
@@ -81,10 +84,18 @@ else
     [Parameter]
     public string EventID { get; set; }
 
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = default!;
+
+
     List<Ticket> eventTickets = null;
     List<EventType> eventTypes = null;
     EventType eventType = null;
     Event e = null;
+
+    private ApplicationUser user = default!;
+    private string? username;
+    private int userId = -1;
 
 
     protected override async Task OnInitializedAsync()
@@ -92,7 +103,29 @@ else
         e = await EventsService.GetEvent(EventID);
         eventTickets = await TicketsService.GetEventTickets(EventID);
         eventTypes = await EventTypesService.GetAllEventTypes();
-
         eventType = eventTypes.Find(eventType => eventType.EventTypeId == e.EventTypeId);
+
+        user = await UserAccessor.GetRequiredUserAsync(HttpContext);
+        username = await UserManager.GetUserIdAsync(user);
+        var eventHubUser = await UsersService.FindUserByUsername(username);
+        userId = eventHubUser.UserId;
+    }
+
+    [SupplyParameterFromForm]
+    public UserTicket UserTicket { get; set; } = new UserTicket()
+        {
+            TicketId = -1,
+            Quantity = 1,
+            PaymentMethod = string.Empty,
+        };
+
+    async Task HandleSubmit()
+    {
+        UserTicket.PurchaseDate = DateTime.Now;
+        UserTicket.UserId = userId;
+        await UserTicketsService.PurchaseTicket(UserTicket);
+
+        // TODO: Lead user to Purchased Tickets Page upon successful purchase & catch purchase failure 
+        // Navigation.NavigateTo("/");
     }
 }

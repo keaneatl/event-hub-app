@@ -155,12 +155,12 @@ public partial class EventHubussyContext : DbContext
             entity.Property(e => e.TicketId).HasColumnName("TicketID");
             entity.Property(e => e.UserId).HasColumnName("UserID");
 
-            entity.HasOne(d => d.User).WithMany(p => p.UserTickets)
-                .HasForeignKey(d => d.UserId)
+            entity.HasOne(d => d.Ticket).WithMany(p => p.UserTickets)
+                .HasForeignKey(d => d.TicketId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_UserTickets_Tickets");
 
-            entity.HasOne(d => d.UserNavigation).WithMany(p => p.UserTickets)
+            entity.HasOne(d => d.User).WithMany(p => p.UserTickets)
                 .HasForeignKey(d => d.UserId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_UserTickets_Users");

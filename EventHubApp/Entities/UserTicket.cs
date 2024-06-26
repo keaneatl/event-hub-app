@@ -19,7 +19,7 @@ public partial class UserTicket
 
     public int UserId { get; set; }
 
-    public virtual Ticket User { get; set; } = null!;
+    public virtual Ticket Ticket { get; set; } = null!;
 
-    public virtual User UserNavigation { get; set; } = null!;
+    public virtual User User { get; set; } = null!;
 }
